@@ -1,0 +1,1 @@
+# Image used to deploy with sshpass
