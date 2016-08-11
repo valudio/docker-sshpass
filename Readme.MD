@@ -1,1 +1,3 @@
-# Image used to deploy with sshpass
+# valudio/sshpass
+
+Node-alpine based image used to deploy projects

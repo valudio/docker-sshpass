@@ -1,9 +1,7 @@
-FROM node:slim
+FROM mhart/alpine-node:latest
 MAINTAINER Valudio <development@valudio.com>
 
-# Locale issue
-ENV LC_ALL="POSIX" \
-    METEOR_VERSION=latest 
+RUN apk update && apk add --no-cache openssh sshpass
 
-RUN apt-get update && apt-get -y install sshpass
+EXPOSE 3000
 CMD ["bash"]
