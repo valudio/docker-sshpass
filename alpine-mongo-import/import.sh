@@ -27,4 +27,4 @@ sshpass -p $PWORD ssh -o StrictHostKeyChecking=no root@$TO << EOF
 docker exec -d mongodb bash -c "mongorestore --db $DB /data/db/$DB"
 exit
 EOF
-echo "Done!"
+echo "Done!" 
