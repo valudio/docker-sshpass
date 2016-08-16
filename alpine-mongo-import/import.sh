@@ -5,52 +5,88 @@
 # PWORDFROM
 # PWORDTO
 # DB
-# OP [GETDUMP, TRANSFER(default)]
-# DUMPUSER=$6 (only needed if GETDUMP -> <USERNAME_TO_LOGIN>)
-# DUMPPATH=$6 (only needed if GETDUMP -> <PATH_TO_STORE>)
+# CONTAINERFROM (mongodb by default)
+# CONTAINERTO (mongodb by default)
+# OP [GETDUMP,  TRANSFER(default)]
+# USERFROM (root by default)
+# USERTO (root by default)
+# PATHFROM (/var/lib/mongodb by default)
+# PATHTO (/var/lib/mongodb by default)
 # script ############################
 
 PWDTO=$PWORDFROM
-PATH_TO_STORE=$DUMPPATH
+PFROM=$PATHFROM
+PTO=$PATHTO
+CTNFROM=$CONTAINERFROM
+CTNTO=$CONTAINERTO
+USERFROM=$USERFROM
+USERTO=$USERTO
+OPERATION=$OP
+
+if [ -z "$OP"]; then
+OP="TRANSFER"
+echo "[No OP present. Assigning 'TRANSFER']"
+fi
 
 if [ -z "$PWORDTO"]; then
 PWDTO=$PWORDFROM
 echo "[No PWDTO present. Assigning '$PWDTO']"
 fi
 
-if [ -z "$DUMPPATH"]; then
-PATH_TO_STORE="/var/lib/mongodb"
-echo "[No DUMPPATH present. Assigning '/var/lib/mongodb']"
+if [ -z "$PATHFROM"]; then
+PFROM="/var/lib/mongodb"
+echo "[No PATHFROM present. Assigning '/var/lib/mongodb']"
+fi
+
+if [ -z "$PATHTO"]; then
+PTO="/var/lib/mongodb"
+echo "[No PATHTO present. Assigning '/var/lib/mongodb']"
+fi
+
+if [ -z "$USERFROM"]; then
+USERFROM="root"
+echo "[No USERFROM present. Assigning 'root']"
+fi
+
+if [ -z "$USERTO"]; then
+USERTO="root"
+echo "[No USERTO present. Assigning 'root']"
+fi
+
+if [ -z "$CONTAINERFROM"]; then
+CTNFROM="mongodb"
+echo "[No CONTAINERFROM present. Assigning 'mongodb']"
+fi
+
+if [ -z "$CONTAINERTO"]; then
+CTNTO="mongodb"
+echo "[No CONTAINERTO present. Assigning 'mongodb']"
 fi
 
 
 echo "[Importing from $FROM to $TO with pwd_FROM: $PWORDFROM, pwd_TO: $PWORDTO, database: $DB, dumpUser: $DUMPUSER, dumpPath: $DUMPPATH]"
 
 echo "[Dumping data from $FROM  ............................]"
-sshpass -p $PWORDFROM ssh -o StrictHostKeyChecking=no root@$FROM << EOF
-docker exec -d mongodb bash -c "rm -rf /data/db/$DB && mongodump -d $DB -o /data/db"
+sshpass -p $PWORDFROM ssh -o StrictHostKeyChecking=no $USERFROM@$FROM << EOF
+docker exec -d $CTNFROM bash -c "rm -rf /data/db/$DB && mongodump -d $DB -o /data/db"
 exit
 EOF
 
 echo "[Copying data from $FROM into temporal folder ............................]"
 mkdir ~/tmpDump
-sshpass -p $PWORDFROM scp root@$FROM:/var/lib/mongodb/$DB/* ~/tmpDump
+sshpass -p $PWORDFROM scp $USERFROM@$FROM:$PFROM/$DB/* ~/tmpDump
 
-echo "[Is this dump? => $OP]"
-
-if [ "$OP" == "GETDUMP" ]; then
 echo "[Removing old data from $TO ..........................]"
-sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no $DUMPUSER@$TO "rm -rf $PATH_TO_STORE/$DB && mkdir $PATH_TO_STORE/$DB"
-echo "[Transferring dump to $PATH_TO_STORE ............................]"
-sshpass -p $PWDTO scp ~/tmpDump/* $DUMPUSER@$TO:$PATH_TO_STORE/$DB
-else
-echo "[Removing old data from $TO ..........................]"
-sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no root@$TO "rm -rf $PATH_TO_STORE/$DB && mkdir $PATH_TO_STORE/$DB"
+sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no $USERTO@$TO "rm -rf $PTO/$DB && mkdir $PTO/$DB"
 echo "[Transferring data to $TO ............................]"
-sshpass -p $PWDTO scp ~/tmpDump/* root@$TO:$PATH_TO_STORE/$DB
+sshpass -p $PWDTO scp ~/tmpDump/* $USERTO@$TO:$PTO/$DB
+
+echo "[Is this dump? => $OPERATION]"
+
+if [ "$OPERATION" == "TRANSFER" ]; then
 echo "[Restoring data in $TO ...............................]"
-sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no root@$TO << EOF
-docker exec -d mongodb bash -c "mongorestore --db $DB /data/db/$DB"
+sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no $USERTO@$TO << EOF
+docker exec -d $CTNTO bash -c "mongorestore --db $DB /data/db/$DB"
 exit
 EOF
 fi
