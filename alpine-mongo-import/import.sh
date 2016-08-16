@@ -24,7 +24,7 @@ UTO=$USERTO
 OPERATION=$OP
 
 if [ -z "$OP"]; then
-OP="TRANSFER"
+OPERATION="TRANSFER"
 echo "[No OP present. Assigning 'TRANSFER']"
 fi
 
