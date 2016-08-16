@@ -19,8 +19,8 @@ PFROM=$PATHFROM
 PTO=$PATHTO
 CTNFROM=$CONTAINERFROM
 CTNTO=$CONTAINERTO
-USERFROM=$USERFROM
-USERTO=$USERTO
+UFROM=$USERFROM
+UTO=$USERTO
 OPERATION=$OP
 
 if [ -z "$OP"]; then
@@ -44,12 +44,12 @@ echo "[No PATHTO present. Assigning '/var/lib/mongodb']"
 fi
 
 if [ -z "$USERFROM"]; then
-USERFROM="root"
+UFROM="root"
 echo "[No USERFROM present. Assigning 'root']"
 fi
 
 if [ -z "$USERTO"]; then
-USERTO="root"
+UTO="root"
 echo "[No USERTO present. Assigning 'root']"
 fi
 
@@ -64,28 +64,28 @@ echo "[No CONTAINERTO present. Assigning 'mongodb']"
 fi
 
 
-echo "[Importing from $FROM to $TO with pwd_FROM: $PWORDFROM, pwd_TO: $PWORDTO, database: $DB, dumpUser: $DUMPUSER, dumpPath: $DUMPPATH]"
+echo "[Importing from $FROM to $TO with pwd_FROM: $PWORDFROM, pwd_TO: $PWORDTO, database: $DB, user_FROM: $UFROM, user_TO: $UTO,  path_FROM: $PFROM, path_TO: $PTO]"
 
 echo "[Dumping data from $FROM  ............................]"
-sshpass -p $PWORDFROM ssh -o StrictHostKeyChecking=no $USERFROM@$FROM << EOF
+sshpass -p $PWORDFROM ssh -o StrictHostKeyChecking=no $UFROM@$FROM << EOF
 docker exec -d $CTNFROM bash -c "rm -rf /data/db/$DB && mongodump -d $DB -o /data/db"
 exit
 EOF
 
 echo "[Copying data from $FROM into temporal folder ............................]"
 mkdir ~/tmpDump
-sshpass -p $PWORDFROM scp $USERFROM@$FROM:$PFROM/$DB/* ~/tmpDump
+sshpass -p $PWORDFROM scp $UFROM@$FROM:$PFROM/$DB/* ~/tmpDump
 
 echo "[Removing old data from $TO ..........................]"
-sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no $USERTO@$TO "rm -rf $PTO/$DB && mkdir $PTO/$DB"
+sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no $UTO@$TO "rm -rf $PTO/$DB && mkdir $PTO/$DB"
 echo "[Transferring data to $TO ............................]"
-sshpass -p $PWDTO scp ~/tmpDump/* $USERTO@$TO:$PTO/$DB
+sshpass -p $PWDTO scp ~/tmpDump/* $UTO@$TO:$PTO/$DB
 
 echo "[Is this dump? => $OPERATION]"
 
 if [ "$OPERATION" == "TRANSFER" ]; then
 echo "[Restoring data in $TO ...............................]"
-sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no $USERTO@$TO << EOF
+sshpass -p $PWDTO ssh -o StrictHostKeyChecking=no $UTO@$TO << EOF
 docker exec -d $CTNTO bash -c "mongorestore --db $DB /data/db/$DB"
 exit
 EOF
