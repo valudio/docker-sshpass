@@ -3,5 +3,7 @@ MAINTAINER Valudio <development@valudio.com>
 
 RUN apk update && apk add --no-cache openssh sshpass
 
+WORKDIR /app
+
 EXPOSE 3000
 CMD ["bash"]
